@@ -218,6 +218,10 @@ shakaDemo.Config = class {
             'manifest.hls.defaultVideoCodec')
         .addBoolInput_(MessageIds.IGNORE_MANIFEST_PROGRAM_DATE_TIME,
             'manifest.hls.ignoreManifestProgramDateTime')
+        .addBoolInput_(MessageIds.USE_SAFARI_BEHAVIOR_FOR_LIVE,
+            'manifest.hls.useSafariBehaviorForLive')
+        .addNumberInput_(MessageIds.LIVE_SEGMENTS_DELAY,
+            'manifest.hls.liveSegmentsDelay')
         .addNumberInput_(MessageIds.AVAILABILITY_WINDOW_OVERRIDE,
             'manifest.availabilityWindowOverride',
             /* canBeDecimal= */ true,
@@ -233,6 +237,8 @@ shakaDemo.Config = class {
             /* canBeDecimal= */ false,
             /* canBeZero= */ false,
             /* canBeUnset= */ true)
+        .addBoolInput_(MessageIds.SEQUENCE_MODE,
+            'manifest.dash.sequenceMode')
         .addBoolInput_(MessageIds.DISABLE_AUDIO,
             'manifest.disableAudio')
         .addBoolInput_(MessageIds.DISABLE_VIDEO,
@@ -302,6 +308,7 @@ shakaDemo.Config = class {
     const MessageIds = shakaDemo.MessageIds;
     const docLink = this.resolveExternLink_('.LcevcConfiguration');
     this.addSection_(MessageIds.LCEVC_SECTION_HEADER, docLink)
+        .addBoolInput_(MessageIds.ENABLED, 'lcevc.enabled')
         .addBoolInput_(MessageIds.LCEVC_DYNAMIC_PERFORMANCE_SCALING,
             'lcevc.dynamicPerformanceScaling')
         .addNumberInput_(MessageIds.LCEVC_LOG_LEVEL, 'lcevc.logLevel')
@@ -429,8 +436,8 @@ shakaDemo.Config = class {
       this.latestInput_.input().checked = true;
     }
 
-    this.addBoolInput_(MessageIds.FORCE_TRANSMUX_TS,
-        'streaming.forceTransmuxTS')
+    this.addBoolInput_(MessageIds.FORCE_TRANSMUX,
+        'streaming.forceTransmux')
         .addBoolInput_(MessageIds.START_AT_SEGMENT_BOUNDARY,
             'streaming.startAtSegmentBoundary')
         .addBoolInput_(MessageIds.IGNORE_TEXT_FAILURES,

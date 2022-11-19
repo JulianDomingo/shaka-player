@@ -66,7 +66,6 @@ describe('StreamingEngine', () => {
 
     mediaSourceEngine = new shaka.media.MediaSourceEngine(
         video,
-        new shaka.test.FakeClosedCaptionParser(),
         new shaka.test.FakeTextDisplayer());
     const mediaSourceConfig =
         shaka.util.PlayerConfiguration.createDefault().mediaSource;
@@ -156,6 +155,19 @@ describe('StreamingEngine', () => {
         /* secondPeriodStartTime= */ 300,
         /* presentationDuration= */ Infinity);
     setupPlayhead();
+
+    // Retry on failure for live streams.
+    config.failureCallback = () => streamingEngine.retry(0.1);
+
+    // Ignore 404 errors in live stream tests.
+    onError.and.callFake((error) => {
+      if (error.code == shaka.util.Error.Code.BAD_HTTP_STATUS &&
+          error.data[1] == 404) {
+        // 404 error
+      } else {
+        fail(error);
+      }
+    });
 
     createStreamingEngine();
   }

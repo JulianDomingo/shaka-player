@@ -106,7 +106,9 @@ describe('MediaSourceEngine', () => {
     shaka.media.Transmuxer = /** @type {?} */ (function() {
       return /** @type {?} */ (mockTransmuxer);
     });
-    shaka.media.Transmuxer.convertTsCodecs = originalTransmuxer.convertTsCodecs;
+    shaka.media.Transmuxer.convertCodecs = (mimeType, contentType) => {
+      return 'video/mp4; codecs="avc1.42E01E"';
+    };
     shaka.media.Transmuxer.isSupported = (mimeType, contentType) => {
       return mimeType == 'tsMimetype';
     };
@@ -150,8 +152,10 @@ describe('MediaSourceEngine', () => {
     mockTextDisplayer = new shaka.test.FakeTextDisplayer();
     mediaSourceEngine = new shaka.media.MediaSourceEngine(
         video,
-        mockClosedCaptionParser,
         mockTextDisplayer);
+    mediaSourceEngine.getCaptionParser = () => {
+      return mockClosedCaptionParser;
+    };
     const config = shaka.util.PlayerConfiguration.createDefault().mediaSource;
     mediaSourceEngine.configure(config);
   });
@@ -206,7 +210,6 @@ describe('MediaSourceEngine', () => {
     it('creates a MediaSource object and sets video.src', () => {
       mediaSourceEngine = new shaka.media.MediaSourceEngine(
           video,
-          new shaka.test.FakeClosedCaptionParser(),
           new shaka.test.FakeTextDisplayer());
 
       expect(createMediaSourceSpy).toHaveBeenCalled();
@@ -633,7 +636,7 @@ describe('MediaSourceEngine', () => {
       videoSourceBuffer.mode = 'sequence';
 
       await mediaSourceEngine.init(
-          initObject, /* forceTransmuxTS= */ false, /* sequenceMode= */ true);
+          initObject, /* forceTransmux= */ false, /* sequenceMode= */ true);
 
       expect(videoSourceBuffer.timestampOffset).toBe(0);
 
@@ -659,7 +662,7 @@ describe('MediaSourceEngine', () => {
       initObject.set(ContentType.VIDEO, fakeVideoStream);
 
       await mediaSourceEngine.init(
-          initObject, /* forceTransmuxTS= */ false, /* sequenceMode= */ true);
+          initObject, /* forceTransmux= */ false, /* sequenceMode= */ true);
 
       // First, mock the scenario where timestampOffset is set to help align
       // text segments. In this case, SourceBuffer mode is still 'segments'.

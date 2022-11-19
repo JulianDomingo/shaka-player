@@ -331,9 +331,9 @@
     "description": "The name of a configuration value.",
     "message": "Force [JARGON:HTTPS]"
   },
-  "DEMO_FORCE_TRANSMUX_TS": {
+  "DEMO_FORCE_TRANSMUX": {
     "description": "The name of a configuration value.",
-    "message": "Force Transmux [JARGON:MPEG-2 TS]"
+    "message": "Force Transmux"
   },
   "DEMO_FRONT_INTRO_DISMISS": {
     "description": "A button allowing users to dismiss the intro message.",
@@ -463,6 +463,10 @@
     "description": "The header for a section of configuration values.",
     "message": "Language"
   },
+  "DEMO_LCEVC": {
+    "description": "Text that describes an asset that has LCEVC.",
+    "message": "[PROPER_NAME:LCEVC]"
+  },
   "DEMO_LCEVC_DRAW_LOGO": {
     "description": "LCEVC Watermark on the top left hand corner of the canvas.",
     "message": "Draw [PROPER_NAME:LCEVC] Logo"
@@ -514,6 +518,10 @@
   "DEMO_LIVE_SEARCH": {
     "description": "A header on a search field that filters by whether the asset is live or not.",
     "message": "Live"
+  },
+  "DEMO_LIVE_SEGMENTS_DELAY": {
+    "description": "The name of a configuration value.",
+    "message": "Live segments delay"
   },
   "DEMO_LOG_LEVEL": {
     "description": "The name of a configuration value.",
@@ -787,6 +795,10 @@
     "description": "The name of a configuration value.",
     "message": "Enable segment-relative VTT Timing"
   },
+  "DEMO_SEQUENCE_MODE": {
+    "description": "The name of a configuration value.",
+    "message": "Enable sequence mode"
+  },
   "DEMO_SESSION_ID": {
     "description": "The name of a configuration value.",
     "message": "Session ID"
@@ -978,6 +990,10 @@
   "DEMO_USE_PERSISTENT_LICENSES": {
     "description": "The name of a configuration value.",
     "message": "Use Persistent Licenses"
+  },
+  "DEMO_USE_SAFARI_BEHAVIOR_FOR_LIVE": {
+    "description": "The name of a configuration value.",
+    "message": "Use Safari behavior for live"
   },
   "DEMO_VIDEO_ROBUSTNESS": {
     "description": "The name of a configuration value.",

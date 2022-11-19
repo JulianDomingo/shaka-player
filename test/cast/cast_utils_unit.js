@@ -34,6 +34,7 @@ describe('CastUtils', () => {
     const castMembers = CastUtils.PlayerVoidMethods
         .concat(CastUtils.PlayerPromiseMethods)
         .concat(Object.keys(CastUtils.PlayerGetterMethods))
+        .concat(Object.keys(CastUtils.LargePlayerGetterMethods))
         .concat(Object.keys(CastUtils.PlayerGetterMethodsThatRequireLive));
     // eslint-disable-next-line no-restricted-syntax
     const allPlayerMembers = Object.getOwnPropertyNames(shaka.Player.prototype);
@@ -205,7 +206,6 @@ describe('CastUtils', () => {
 
         mediaSourceEngine = new shaka.media.MediaSourceEngine(
             video,
-            new shaka.test.FakeClosedCaptionParser(),
             new shaka.test.FakeTextDisplayer());
         const config =
             shaka.util.PlayerConfiguration.createDefault().mediaSource;

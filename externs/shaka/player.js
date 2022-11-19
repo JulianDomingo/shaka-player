@@ -706,7 +706,7 @@ shaka.extern.AdvancedDrmConfiguration;
  *   <code>{'com.widevine.alpha': 'https://example.com/drm'}</code>.
  * @property {!Object.<string, string>} clearKeys
  *   <i>Forces the use of the Clear Key CDM.</i>
- *   A map of key IDs (hex) to keys (hex).
+ *   A map of key IDs (hex or base64) to keys (hex or base64).
  * @property {boolean} delayLicenseRequestUntilPlayed
  *   <i>Defaults to false.</i> <br>
  *   True to configure drm to delay sending a license request until a user
@@ -761,7 +761,8 @@ shaka.extern.DrmConfiguration;
  *   ignoreEmptyAdaptationSet: boolean,
  *   ignoreMaxSegmentDuration: boolean,
  *   keySystemsByURI: !Object.<string, string>,
- *   manifestPreprocessor: function(!Element)
+ *   manifestPreprocessor: function(!Element),
+ *   sequenceMode: boolean
  * }}
  *
  * @property {string} clockSyncUri
@@ -815,6 +816,10 @@ shaka.extern.DrmConfiguration;
  *   Called immediately after the DASH manifest has been parsed into an
  *   XMLDocument. Provides a way for applications to perform efficient
  *   preprocessing of the manifest.
+ * @property {boolean} sequenceMode
+ *   If true, the media segments are appended to the SourceBuffer in
+ *   "sequence mode" (ignoring their internal timestamps).
+ *   <i>Defaults to <code>false</code>.</i>
  * @exportDoc
  */
 shaka.extern.DashManifestConfiguration;
@@ -827,7 +832,9 @@ shaka.extern.DashManifestConfiguration;
  *   defaultAudioCodec: string,
  *   defaultVideoCodec: string,
  *   ignoreManifestProgramDateTime: boolean,
- *   mediaPlaylistFullMimeType: string
+ *   mediaPlaylistFullMimeType: string,
+ *   useSafariBehaviorForLive: boolean,
+ *   liveSegmentsDelay: number
  * }}
  *
  * @property {boolean} ignoreTextStreamFailures
@@ -858,6 +865,16 @@ shaka.extern.DashManifestConfiguration;
  *   format this value.
  *   <i>Defaults to
  *   <code>'video/mp2t; codecs="avc1.42E01E, mp4a.40.2"'</code>.</i>
+ * @property {boolean} useSafariBehaviorForLive
+ *   If this is true, playback will set the availability window to the
+ *   presentation delay. The player will be able to buffer ahead three
+ *   segments, but the seek window will be zero-sized, to be consistent with
+ *   Safari. If this is false, the seek window will be the entire duration.
+ *   <i>Defaults to <code>true</code>.</i>
+ * @property {number} liveSegmentsDelay
+ *   The default presentation delay will be calculated as a number of segments.
+ *   This is the number of segments for this calculation..
+ *   <i>Defaults to <code>3</code>.</i>
  * @exportDoc
  */
 shaka.extern.HlsManifestConfiguration;
@@ -930,7 +947,7 @@ shaka.extern.ManifestConfiguration;
  *   startAtSegmentBoundary: boolean,
  *   gapDetectionThreshold: number,
  *   durationBackoff: number,
- *   forceTransmuxTS: boolean,
+ *   forceTransmux: boolean,
  *   safeSeekOffset: number,
  *   stallEnabled: boolean,
  *   stallThreshold: number,
@@ -993,12 +1010,12 @@ shaka.extern.ManifestConfiguration;
  *   seek to when the user tries to seek to or start playback at the duration.
  *   To disable this behavior, the config can be set to 0.  We recommend using
  *   the default value unless you have a good reason not to.
- * @property {boolean} forceTransmuxTS
- *   If this is <code>true</code>, we will transmux TS content even if not
- *   strictly necessary for the assets to be played.  Shaka Player currently
- *   only supports CEA 708 captions by transmuxing, so this value is necessary
- *   for enabling them on platforms with native TS support like Edge or
- *   Chromecast. This value defaults to <code>false</code>.
+ * @property {boolean} forceTransmux
+ *   If this is <code>true</code>, we will transmux AAC and TS content even if
+ *   not strictly necessary for the assets to be played.  Shaka Player
+ *   currently only supports CEA 708 captions by transmuxing, so this value is
+ *   necessary for enabling them on platforms with native TS support like Edge
+ *   or Chromecast. This value defaults to <code>false</code>.
  * @property {number} safeSeekOffset
  *   The amount of seconds that should be added when repositioning the playhead
  *   after falling out of the availability window or seek. This gives the player
@@ -1206,6 +1223,7 @@ shaka.extern.CmcdConfiguration;
 
 /**
  * @typedef {{
+ *   enabled: boolean,
  *   dynamicPerformanceScaling: boolean,
  *   logLevel: number,
  *   drawLogo: boolean
@@ -1214,6 +1232,9 @@ shaka.extern.CmcdConfiguration;
  * @description
  *   Decoding for MPEG-5 Part2 LCEVC.
  *
+ * @property {boolean} enabled
+ *   If <code>true</code>, enable LCEVC.
+ *   Defaults to <code>false</code>.
  * @property {boolean} dynamicPerformanceScaling
  *   If <code>true</code>, LCEVC Dynamic Performance Scaling or dps is enabled
  *   to be triggered, when the system is not able to decode frames within a
@@ -1407,7 +1428,8 @@ shaka.extern.LanguageRole;
  *   startTime: number,
  *   duration: number,
  *   uris: !Array.<string>,
- *   width: number
+ *   width: number,
+ *   sprite: boolean
  * }}
  *
  * @property {number} imageHeight
@@ -1431,6 +1453,8 @@ shaka.extern.LanguageRole;
  *   given.
  * @property {number} width
  *    The thumbnail width in px.
+ * @property {boolean} sprite
+ *    Indicate if the thumbnail is a sprite.
  * @exportDoc
  */
 shaka.extern.Thumbnail;

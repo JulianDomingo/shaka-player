@@ -90,6 +90,90 @@ shaka.extern.UIVolumeBarColors;
 shaka.extern.UIQualityMarks;
 
 /**
+ * @typedef {{
+ *   small_rewind: string,
+ *   small_fast_forward: string,
+ *   large_rewind: string,
+ *   large_fast_forward: string,
+ *   home: string,
+ *   end: string,
+ *   captions: string,
+ *   fullscreen: string,
+ *   mute: string,
+ *   picture_in_picture: string,
+ *   increase_video_speed: string,
+ *   decrease_video_speed: string,
+ *   play: string,
+ *   take_screenshot: string,
+ *   last_frame: string,
+ *   next_frame: string,
+ * }}
+ *
+ * @property {string} small_rewind
+ *   Shortcut for small rewind.
+ *   <br>
+ *   Defaults to 'ArrowLeft'.
+ * @property {string} small_fast_forward
+ *   Shortcut for small fast forward.
+ *   <br>
+ *   Defaults to 'ArrowRight'.
+ * @property {string} large_rewind
+ *   Shortcut for large rewind.
+ *   <br>
+ *   Defaults to 'PageDown'.
+ * @property {string} large_fast_forward
+ *   Shortcut for large fast forward.
+ *   <br>
+ *   Defaults to 'PageUp'.
+ * @property {string} home
+ *   Shortcut to go home.
+ *   <br>
+ *   Defaults to 'Home'.
+ * @property {string} end
+ *   Shortcut to go end.
+ *   <br>
+ *   Defaults to 'End'.
+ * @property {string} captions
+ *   Shortcut for toggle last captions.
+ *   <br>
+ *   Defaults to 'c'.
+ * @property {string} fullscreen
+ *   Shortcut for toggle fullscreen.
+ *   <br>
+ *   Defaults to 'f'.
+ * @property {string} picture_in_picture
+ *   Shortcut for toggle picture in picture.
+ *   <br>
+ *   Defaults to 'p'.
+ * @property {string} increase_video_speed
+ *   Shortcut for increase video speed.
+ *   <br>
+ *   Defaults to '>'.
+ * @property {string} decrease_video_speed
+ *   Shortcut for decrease video speed.
+ *   <br>
+ *   Defaults to '<'.
+ * @property {string} play
+ *   Shortcut for toggle play/pause.
+ *   <br>
+ *   Defaults to 'k'.
+ * @property {string} take_screenshot
+ *   Shortcut for take screenshot.
+ *   <br>
+ *   Defaults to 'u'.
+ * @property {string} last_frame
+ *   Shortcut for return to previous frame.
+ *   <br>
+ *   Defaults to ','.
+ * @property {string} next_frame
+ *   Shortcut for advance to next frame.
+ *   <br>
+ *   Defaults to '.'.
+ * @exportDoc
+ */
+shaka.extern.UIShortcuts;
+
+/**
  * @description
  * The UI's configuration options.
  *
@@ -138,7 +222,8 @@ shaka.extern.UIQualityMarks;
  *   showVideoCodec: boolean,
  *   castSenderUrl: string,
  *   enableKeyboardPlaybackControlsInWindow: boolean,
- *   alwaysShowVolumeBar: boolean
+ *   alwaysShowVolumeBar: boolean,
+ *   shortcuts: shaka.extern.UIShortcuts,
  * }}
  *
  * @property {!Array<string>} controlPanelElements
@@ -380,6 +465,8 @@ shaka.extern.UIQualityMarks;
  *   each other.
  *   <br>
  *   Defaults to <code>false</code>.
+ * @property {shaka.extern.UIShortcuts} shortcuts
+ *   The UI shortcuts.
  * @exportDoc
  */
 shaka.extern.UIConfiguration;
@@ -562,7 +649,7 @@ shaka.extern.IUISettingsMenu = class {
     this.button;
 
     /**
-     * @protected {!shaka.ui.MaterialSVGIcon}
+     * @protected {!shaka.ui.Icon}
      * @exportDoc
      */
     this.icon;
@@ -664,3 +751,27 @@ shaka.extern.IUIPlayButton = class {
   /** @return {boolean} */
   isEnded() {}
 };
+
+/**
+ * @typedef {{
+ *   path: ?(string | Array<string>),
+ *   viewBox: ?string,
+ *   url: ?string,
+ *   size: ?number,
+ * }}
+ *
+ * @property {?(string | Array<string>)} path
+ *   A single SVG path string or an array of multiple path strings.
+ *   Used to define the shape(s) of the SVG icon.
+ * @property {?string} viewBox
+ *   The `viewBox` attribute for the SVG element.
+ *   Defaults to `'0 -960 960 960'` if not specified.
+ * @property {?string} url
+ *   The URL of an external SVG icon.
+ *   If this is defined, `viewBox` and `path` will be ignored.
+ * @property {?number} size
+ *   Custom size for the icon in pixels.
+ *   If not provided, the size will be controlled via CSS.
+ * @exportDoc
+ */
+shaka.extern.UIIcon;

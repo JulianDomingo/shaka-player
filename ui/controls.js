@@ -182,6 +182,9 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
     /** @private {!Array<!HTMLElement>} */
     this.menus_ = [];
 
+    /** @private {?shaka.extern.TextTrack} */
+    this.lastSelectedTextTrack_ = null;
+
     /**
      * Individual controls which, when hovered or tab-focused, will force the
      * controls to be shown.
@@ -304,14 +307,23 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
     this.adManager_.initInterstitial(
         this.getClientSideAdContainer(), this.localPlayer_, this.localVideo_);
 
-    this.eventManager_.listen(this.player_, 'texttrackvisibility', () => {
+    this.eventManager_.listen(this.player_, 'textchanged', () => {
       this.computeShakaTextContainerSize_();
+
+      const tracks = this.player_.getTextTracks();
+      const selectedTrack = tracks.find((track) => track.active);
+      if (selectedTrack) {
+        // Store the most recently active track to restore selection
+        // when the user toggles visibility.
+        this.lastSelectedTextTrack_ = selectedTrack;
+      }
     });
 
     this.eventManager_.listen(this.player_, 'unloading', () => {
       if (this.ad_) {
         return;
       }
+      this.lastSelectedTextTrack_ = null;
       if (this.isFullScreenEnabled()) {
         this.exitFullScreen_();
       }
@@ -382,9 +394,14 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
       this.spinnerContainer_ = null;
     }
 
-    if (this.clientAdContainer_) {
-      this.videoContainer_.removeChild(this.clientAdContainer_);
-      this.clientAdContainer_ = null;
+    if (this.clientSideAdContainer_) {
+      this.videoContainer_.removeChild(this.clientSideAdContainer_);
+      this.clientSideAdContainer_ = null;
+    }
+
+    if (this.serverSideAdContainer_) {
+      this.videoContainer_.removeChild(this.serverSideAdContainer_);
+      this.serverSideAdContainer_ = null;
     }
 
     if (this.localPlayer_) {
@@ -487,10 +504,10 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
       this.releaseChildElements_();
     } else {
       this.addControlsContainer_();
-      // The client-side ad container is only created once, and is never
+      // The ad container is only created once, and is never
       // re-created or uprooted in the DOM, even when the DOM is re-created,
       // since that seemingly breaks the IMA SDK.
-      this.addClientAdContainer_();
+      this.addAdContainers_();
 
       goog.asserts.assert(
           this.controlsContainer_, 'Should have a controlsContainer_!');
@@ -649,7 +666,9 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
    * @export
    */
   getServerSideAdContainer() {
-    return this.daiAdContainer_;
+    goog.asserts.assert(this.serverSideAdContainer_,
+        'No server side ad container after destruction!');
+    return this.serverSideAdContainer_;
   }
 
   /**
@@ -657,9 +676,9 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
    * @export
    */
   getClientSideAdContainer() {
-    goog.asserts.assert(
-        this.clientAdContainer_, 'No client ad container after destruction!');
-    return this.clientAdContainer_;
+    goog.asserts.assert(this.clientSideAdContainer_,
+        'No client side ad container after destruction!');
+    return this.clientSideAdContainer_;
   }
 
   /**
@@ -989,7 +1008,8 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
   /** @export */
   showAdUI() {
     shaka.ui.Utils.setDisplay(this.adPanel_, true);
-    shaka.ui.Utils.setDisplay(this.clientAdContainer_, true);
+    shaka.ui.Utils.setDisplay(this.clientSideAdContainer_, true);
+    shaka.ui.Utils.setDisplay(this.serverSideAdContainer_, true);
     if (this.ad_.hasCustomClick()) {
       this.controlsContainer_.setAttribute('ad-active', 'true');
     } else {
@@ -1000,7 +1020,8 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
   /** @export */
   hideAdUI() {
     shaka.ui.Utils.setDisplay(this.adPanel_, false);
-    shaka.ui.Utils.setDisplay(this.clientAdContainer_, false);
+    shaka.ui.Utils.setDisplay(this.clientSideAdContainer_, false);
+    shaka.ui.Utils.setDisplay(this.serverSideAdContainer_, false);
     this.controlsContainer_.removeAttribute('ad-active');
   }
 
@@ -1082,8 +1103,6 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
       this.addFastForwardButtonOnControlsContainer_();
       this.addRewindButtonOnControlsContainer_();
     }
-
-    this.addDaiAdContainer_();
 
     this.addControlsButtonPanel_();
 
@@ -1283,19 +1302,6 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
 
 
   /**
-   * Adds a container for server side ad UI with IMA SDK.
-   *
-   * @private
-   */
-  addDaiAdContainer_() {
-    /** @private {!HTMLElement} */
-    this.daiAdContainer_ = shaka.util.Dom.createHTMLElement('div');
-    this.daiAdContainer_.classList.add('shaka-server-side-ad-container');
-    this.controlsContainer_.appendChild(this.daiAdContainer_);
-  }
-
-
-  /**
    * Adds a seekbar depending on the configuration.
    * By default an instance of shaka.ui.SeekBar is created
    * This behaviour can be overridden by providing a SeekBar factory using the
@@ -1321,21 +1327,30 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
     }
   }
 
-
   /**
-   * Adds a container for client side ad UI with IMA SDK.
+   * Adds several ads containers.
    *
    * @private
    */
-  addClientAdContainer_() {
+  addAdContainers_() {
     /** @private {HTMLElement} */
-    this.clientAdContainer_ = shaka.util.Dom.createHTMLElement('div');
-    this.clientAdContainer_.classList.add('shaka-client-side-ad-container');
-    shaka.ui.Utils.setDisplay(this.clientAdContainer_, false);
-    this.eventManager_.listen(this.clientAdContainer_, 'click', () => {
+    this.clientSideAdContainer_ = shaka.util.Dom.createHTMLElement('div');
+    this.clientSideAdContainer_.classList.add('shaka-client-side-ad-container');
+    shaka.ui.Utils.setDisplay(this.clientSideAdContainer_, false);
+    this.eventManager_.listen(this.clientSideAdContainer_, 'click', () => {
       this.onContainerClick();
     });
-    this.videoContainer_.appendChild(this.clientAdContainer_);
+    this.videoContainer_.appendChild(this.clientSideAdContainer_);
+
+
+    /** @private {HTMLElement} */
+    this.serverSideAdContainer_ = shaka.util.Dom.createHTMLElement('div');
+    this.serverSideAdContainer_.classList.add('shaka-server-side-ad-container');
+    shaka.ui.Utils.setDisplay(this.serverSideAdContainer_, false);
+    this.eventManager_.listen(this.serverSideAdContainer_, 'click', () => {
+      this.onContainerClick();
+    });
+    this.videoContainer_.appendChild(this.serverSideAdContainer_);
   }
 
   /**
@@ -1905,6 +1920,15 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
    * @private
    */
   onControlsKeyDown_(event) {
+    if (event.ctrlKey || event.metaKey) {
+      return;
+    }
+
+    if (!this.config_.enableKeyboardPlaybackControls ||
+        !this.player_.getAssetUri()) {
+      return;
+    }
+
     const activeElement = document.activeElement;
     const isVolumeBar = activeElement && activeElement.classList ?
         activeElement.classList.contains('shaka-volume-bar') : false;
@@ -1920,16 +1944,11 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
       this.onMouseMove_(event);
     }
 
-    if (!this.config_.enableKeyboardPlaybackControls ||
-        !this.player_.getAssetUri()) {
-      return;
-    }
-
     const keyboardSeekDistance = this.config_.keyboardSeekDistance;
     const keyboardLargeSeekDistance = this.config_.keyboardLargeSeekDistance;
 
-    switch (event.key) {
-      case 'ArrowLeft':
+    switch (event.key.toLowerCase()) {
+      case this.config_.shortcuts.small_rewind.toLowerCase():
         // If it's not focused on the volume bar, or if it's in fullscreen,
         // move the seek time backward for a few sec.
         // Otherwise, the volume will be adjusted automatically.
@@ -1941,7 +1960,7 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
           }
         }
         break;
-      case 'ArrowRight':
+      case this.config_.shortcuts.small_fast_forward.toLowerCase():
         // If it's not focused on the volume bar, or if it's in fullscreen,
         // move the seek time forward for a few sec.
         // Otherwise, the volume will be adjusted automatically.
@@ -1953,7 +1972,7 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
           }
         }
         break;
-      case 'PageDown':
+      case this.config_.shortcuts.large_rewind.toLowerCase():
         // PageDown is like ArrowLeft, but has a larger jump distance, and does
         // nothing to volume.
         if (this.seekBar_ && keyboardLargeSeekDistance > 0) {
@@ -1963,7 +1982,7 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
           }
         }
         break;
-      case 'PageUp':
+      case this.config_.shortcuts.large_fast_forward.toLowerCase():
         // PageDown is like ArrowRight, but has a larger jump distance, and does
         // nothing to volume.
         if (this.seekBar_ && keyboardLargeSeekDistance > 0) {
@@ -1974,38 +1993,48 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
         }
         break;
       // Jump to the beginning of the video's seek range.
-      case 'Home':
+      case this.config_.shortcuts.home.toLowerCase():
         if (this.seekBar_) {
           this.seek_(this.player_.seekRange().start);
         }
         break;
       // Jump to the end of the video's seek range.
-      case 'End':
+      case this.config_.shortcuts.end.toLowerCase():
         if (this.seekBar_) {
           this.seek_(this.player_.seekRange().end);
         }
         break;
-      case 'c':
-        this.player_.setTextTrackVisibility(!this.player_.isTextTrackVisible());
+      case this.config_.shortcuts.captions.toLowerCase(): {
+        if (!this.lastSelectedTextTrack_) {
+          break;
+        }
+        const tracks = this.player_.getTextTracks();
+        const hasTrack = tracks.some((track) => track.active);
+        if (hasTrack) {
+          this.player_.selectTextTrack(null);
+        } else {
+          this.player_.selectTextTrack(this.lastSelectedTextTrack_);
+        }
         break;
-      case 'f':
+      }
+      case this.config_.shortcuts.fullscreen.toLowerCase():
         if (this.isFullScreenSupported()) {
           this.toggleFullScreen();
         }
         break;
-      case 'm':
+      case this.config_.shortcuts.mute.toLowerCase():
         if (this.ad_ && this.ad_.isLinear()) {
           this.ad_.setMuted(!this.ad_.isMuted());
         } else {
           this.localVideo_.muted = !this.localVideo_.muted;
         }
         break;
-      case 'p':
+      case this.config_.shortcuts.picture_in_picture.toLowerCase():
         if (this.isPiPAllowed()) {
           this.togglePiP();
         }
         break;
-      case '>': {
+      case this.config_.shortcuts.increase_video_speed.toLowerCase(): {
         const index =
             this.config_.playbackRates.indexOf(this.player_.getPlaybackRate());
         if (index > -1 && (index + 1) < this.config_.playbackRates.length) {
@@ -2014,7 +2043,7 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
         }
         break;
       }
-      case '<': {
+      case this.config_.shortcuts.decrease_video_speed.toLowerCase(): {
         const index =
             this.config_.playbackRates.indexOf(this.player_.getPlaybackRate());
         if (index > -1 && (index - 1) >= 0) {
@@ -2025,13 +2054,46 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
       }
       // Pause or play by pressing space on the seek bar.
       case ' ':
-        if (
-          isSeekBar ||
-          (isFullscreenOrControlsInWindow && !isControlsFocused)
-        ) {
+      // older browsers might return spacebar instead of a space character
+      case 'spacebar':
+      case this.config_.shortcuts.play.toLowerCase():
+        if (isSeekBar ||
+            (isFullscreenOrControlsInWindow && !isControlsFocused)) {
           this.playPausePresentation();
         }
         break;
+      case this.config_.shortcuts.take_screenshot.toLowerCase():
+        this.takeScreenshot();
+        break;
+      case this.config_.shortcuts.last_frame.toLowerCase():
+        // Return to previous frame
+        this.frameByFrame_(-1);
+        break;
+      case this.config_.shortcuts.next_frame.toLowerCase():
+        // Advance to next frame
+        this.frameByFrame_(1);
+        break;
+      case '0':
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9': {
+        // Jump to percentage in the video
+        if (!this.ad_) {
+          const seekRange = this.player_.seekRange();
+          const length = seekRange.end - seekRange.start;
+          if (length > 0) {
+            const percentage = parseInt(event.key, 10) / 10;
+            this.seek_(seekRange.start + (length * percentage));
+          }
+        }
+        break;
+      }
     }
   }
 
@@ -2078,6 +2140,58 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
   }
 
   /**
+   * @return {boolean}
+   * @export
+   */
+  canTakeScreenshot() {
+    let available = true;
+    if (this.isPlayingVR()) {
+      available = false;
+    }
+    if (available && this.castProxy_.isCasting()) {
+      available = false;
+    }
+    if (available && (this.player_.drmInfo() || this.player_.isAudioOnly())) {
+      available = false;
+    }
+    if (available && this.ad_) {
+      available = false;
+    }
+    if (available && this.player_.isRemotePlayback()) {
+      available = false;
+    }
+    return available;
+  }
+
+  /**
+   * @export
+   */
+  takeScreenshot() {
+    if (!this.canTakeScreenshot()) {
+      return;
+    }
+    const canvas = /** @type {!HTMLCanvasElement}*/ (
+      document.createElement('canvas'));
+    const context = /** @type {CanvasRenderingContext2D} */ (
+      canvas.getContext('2d'));
+
+    const video = /** @type {!HTMLVideoElement} */ (this.localVideo_);
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const dataURL = canvas.toDataURL('image/png');
+
+    const downloadLink = /** @type {!HTMLAnchorElement}*/ (
+      document.createElement('a'));
+    downloadLink.href = dataURL;
+    downloadLink.download =
+        'videoframe_' + video.currentTime.toFixed(3) + '.png';
+    downloadLink.click();
+  }
+
+  /**
    * @private
    */
   dispatchVisibilityEvent_() {
@@ -2085,6 +2199,30 @@ shaka.ui.Controls = class extends shaka.util.FakeEventTarget {
       this.dispatchEvent(new shaka.util.FakeEvent('showingui'));
     } else {
       this.dispatchEvent(new shaka.util.FakeEvent('hidingui'));
+    }
+  }
+
+  /**
+   * @param {number} step
+   * @private
+   */
+  frameByFrame_(step) {
+    if ((this.ad_ && this.ad_.isLinear()) ||
+        this.player_.isAudioOnly()) {
+      return;
+    }
+    const videoTrack = this.player_.getVideoTracks().find((t) => t.active);
+    if (!videoTrack || !videoTrack.frameRate) {
+      return;
+    }
+    if (!this.video_.paused) {
+      this.video_.pause();
+    }
+    const frameTime = 1 / videoTrack.frameRate;
+    const newTime = this.seekBar_.getValue() + frameTime * step;
+    if (newTime >= 0 && newTime <= this.player_.seekRange().end &&
+        this.video_.currentTime !== newTime) {
+      this.seek_(newTime);
     }
   }
 

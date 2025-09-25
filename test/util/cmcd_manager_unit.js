@@ -260,6 +260,65 @@ describe('CmcdManager Setup', () => {
       });
     });
 
+    describe('URL to relative path', () => {
+      it('produces a relative path when at root', () => {
+        const from = 'http://test.com/manifest.mpd';
+        const to = 'http://test.com/1.mp4';
+        expect(CmcdManager.urlToRelativePath(to, from)).toBe('1.mp4');
+      });
+
+      it('produces a relative path when at the same folder level', () => {
+        const from = 'http://test.com/base/manifest.mpd';
+        const to = 'http://test.com/base/1.mp4';
+        expect(CmcdManager.urlToRelativePath(to, from)).toBe('1.mp4');
+      });
+
+      it('produces a relative path when base is lower', () => {
+        const from = 'http://test.com/manifest.mpd';
+        const to = 'http://test.com/base/segments/video/1.mp4';
+        const result = 'base/segments/video/1.mp4';
+        expect(CmcdManager.urlToRelativePath(to, from)).toBe(result);
+      });
+
+      it('produces a relative path when base is higher', () => {
+        const from = 'http://test.com/base/manifest/manifest.mpd';
+        const to = 'http://test.com/1.mp4';
+        expect(CmcdManager.urlToRelativePath(to, from)).toBe('../../1.mp4');
+      });
+
+      it('produces a relative path when base and url are different', () => {
+        const from = 'http://test.com/base/manifest/manifest.mpd';
+        const to = 'http://test.com/base/segments/video/1.mp4';
+        const result = '../segments/video/1.mp4';
+        expect(CmcdManager.urlToRelativePath(to, from)).toBe(result);
+      });
+
+      it('returns url when origins are different', () => {
+        const from = 'http://test.com/base/manifest/manifest.mpd';
+        const to = 'http://foo.com/1.mp4';
+        expect(CmcdManager.urlToRelativePath(to, from)).toBe('http://foo.com/1.mp4');
+      });
+
+      it('maintains query parameters and hash in the relative path', () => {
+        const from = 'http://test.com/base/manifest/manifest.mpd';
+        const to = 'http://test.com/base/segments/video/1.mp4?param=foo&another=bar#hash=baz';
+        const result = '../segments/video/1.mp4?param=foo&another=bar#hash=baz';
+        expect(CmcdManager.urlToRelativePath(to, from)).toBe(result);
+      });
+
+      it('produces a relative path when only query params differ', () => {
+        const from = 'http://test.com/file.mp4?i=0';
+        const to = 'http://test.com/file.mp4?i=1';
+        expect(CmcdManager.urlToRelativePath(to, from)).toBe('file.mp4?i=1');
+      });
+
+      it('produces a relative path when only hash params differ', () => {
+        const from = 'http://test.com/file.mp4#i=0';
+        const to = 'http://test.com/file.mp4#i=1';
+        expect(CmcdManager.urlToRelativePath(to, from)).toBe('file.mp4#i=1');
+      });
+    });
+
     describe('CmcdManager instance', () => {
       const ObjectUtils = shaka.util.ObjectUtils;
 
@@ -1352,6 +1411,31 @@ describe('CmcdManager Setup', () => {
         expect(spy).toHaveBeenCalledTimes(1);
         const calledTarget = spy.calls.first().args[1];
         expect(calledTarget.url).toBe('https://enabled.collector.com/cmcd');
+      });
+
+      it('skips applyResponseSegmentData when targets are disabled', () => {
+        const cmcdManager = createCmcdManager(
+            mockPlayer,
+            {
+              targets: [
+                {
+                  mode: 'response',
+                  enabled: false,
+                  url: 'https://disabled.collector.com/cmcd',
+                },
+              ],
+            },
+        );
+        const spy = spyOn(cmcdManager, 'applyResponseSegmentData')
+            .and.callThrough();
+
+        cmcdManager.applyResponseData(
+            shaka.net.NetworkingEngine.RequestType.SEGMENT,
+            createResponse(),
+            createSegmentContext(),
+        );
+
+        expect(spy).not.toHaveBeenCalled();
       });
 
       it('includes ltc for live content request mode', () => {
